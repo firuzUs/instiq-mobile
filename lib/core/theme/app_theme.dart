@@ -18,7 +18,7 @@ class AppTheme {
         error: AppColors.destructiveDark,
         outline: AppColors.borderDark,
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: AppColors.cardDark,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -71,7 +71,7 @@ class AppTheme {
         error: AppColors.destructiveDark,
         outline: AppColors.borderLight,
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: AppColors.cardLight,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

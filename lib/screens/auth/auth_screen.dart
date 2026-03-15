@@ -1,3 +1,4 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -86,8 +87,8 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
       _errorMessage = null;
     });
     try {
-      await supabase.auth.signInWithOAuth(
-        provider == 'google' ? OAuthProvider.google : OAuthProvider.apple,
+      await supabase.auth.signInWithProvider(
+        provider == 'google' ? Provider.google : Provider.apple,
         redirectTo: 'com.instiq.app://callback',
       );
     } on Exception catch (e) {
