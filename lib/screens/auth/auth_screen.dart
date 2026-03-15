@@ -87,8 +87,8 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
       _errorMessage = null;
     });
     try {
-      await supabase.auth.signInWithProvider(
-        provider == 'google' ? Provider.google : Provider.apple,
+      await supabase.auth.signInWithOAuth(
+        provider == 'google' ? OAuthProvider.google : OAuthProvider.apple,
         redirectTo: 'com.instiq.app://callback',
       );
     } on Exception catch (e) {
