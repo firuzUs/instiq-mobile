@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/providers/profile_provider.dart';
 import '../../core/subscription_limits.dart';
+import '../../core/analytics/analytics_service.dart';
 import '../../core/supabase/supabase_client.dart';
 import '../../widgets/glass_card.dart';
 
@@ -18,7 +19,25 @@ class PaywallScreen extends ConsumerWidget {
   const PaywallScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context, WidgetRef ref) => const _PaywallBody();
+}
+
+class _PaywallBody extends ConsumerStatefulWidget {
+  const _PaywallBody();
+
+  @override
+  ConsumerState<_PaywallBody> createState() => _PaywallBodyState();
+}
+
+class _PaywallBodyState extends ConsumerState<_PaywallBody> {
+  @override
+  void initState() {
+    super.initState();
+    AnalyticsService.trackEvent('paywall_opened', properties: {'source': 'paywall_screen'});
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final profileAsync = ref.watch(profileProvider);
     final currentTier = profileAsync.valueOrNull?['subscription_tier'] as String? ?? 'free';
 
@@ -76,6 +95,10 @@ class PaywallScreen extends ConsumerWidget {
                               ? null
                               : () {
                                   if (isPaid) {
+                                    AnalyticsService.trackEvent(
+                                      'paywall_choose_clicked',
+                                      properties: {'tier': id},
+                                    );
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(content: Text('Скоро будет доступно')),
                                     );
@@ -164,11 +187,13 @@ class _PromoFieldState extends State<_PromoField> {
     });
     try {
       await supabase.functions.invoke('activate-promo', body: {'code': code});
+      AnalyticsService.trackEvent('promo_activated', properties: {'code': code});
       widget.onActivated();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Промокод активирован')));
       }
     } catch (e) {
+      AnalyticsService.trackEvent('promo_activate_failed', properties: {'error': e.toString()});
       setState(() {
         _error = e.toString().replaceFirst('Exception: ', '');
       });

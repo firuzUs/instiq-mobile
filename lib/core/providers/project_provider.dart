@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../supabase/supabase_client.dart';
 import 'content_calendar_provider.dart';
 import 'project_profile_provider.dart';
+import '../analytics/analytics_service.dart';
 
 final currentProjectIdProvider = StateProvider<String?>((ref) => null);
 
@@ -32,6 +33,7 @@ final currentProjectProvider = Provider<Map<String, dynamic>?>((ref) {
 /// Смена проекта: обновляет currentProjectId и инвалидирует зависимые провайдеры.
 void switchProject(WidgetRef ref, String projectId) {
   ref.read(currentProjectIdProvider.notifier).state = projectId;
+  AnalyticsService.trackEvent('project_switched', projectId: projectId);
   ref.invalidate(contentCalendarProvider);
   ref.invalidate(projectProfileProvider);
   // strategyChatProvider и trendCoreProvider инвалидируем при использовании по projectId

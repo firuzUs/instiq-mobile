@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/providers/project_provider.dart';
 import '../../core/providers/instagram_provider.dart';
+import '../../core/analytics/analytics_service.dart';
 import '../../core/supabase/supabase_client.dart';
 import '../../widgets/glass_card.dart';
 
@@ -79,11 +80,26 @@ class _InstagramSectionState extends ConsumerState<InstagramSection> {
       _analyzing = true;
     });
     try {
+      AnalyticsService.trackEvent(
+        'instagram_analyze_started',
+        projectId: projectId,
+        properties: {'username': username},
+      );
       await supabase.from('project_profiles').update({'instagram_username': username}).eq('project_id', projectId);
       await supabase.functions.invoke('instagram-profile', body: {'username': username, 'projectId': projectId});
       ref.invalidate(instagramCacheProvider(projectId));
       if (context.mounted) setState(() => _analyzing = false);
+      AnalyticsService.trackEvent(
+        'instagram_analyzed',
+        projectId: projectId,
+        properties: {'username': username},
+      );
     } catch (e) {
+      AnalyticsService.trackEvent(
+        'instagram_analyze_failed',
+        projectId: projectId,
+        properties: {'username': username, 'error': e.toString()},
+      );
       if (mounted) setState(() {
         _error = e.toString().replaceFirst('Exception: ', '');
         _analyzing = false;
@@ -96,11 +112,21 @@ class _InstagramSectionState extends ConsumerState<InstagramSection> {
       final pp = await supabase.from('project_profiles').select('instagram_username').eq('project_id', projectId).maybeSingle();
       final username = pp?['instagram_username'] as String?;
       if (username == null || username.isEmpty) return;
+      AnalyticsService.trackEvent(
+        'instagram_refresh_started',
+        projectId: projectId,
+        properties: {'username': username},
+      );
       await supabase.functions.invoke('instagram-profile', body: {'username': username, 'projectId': projectId});
       ref.invalidate(instagramCacheProvider(projectId));
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Данные обновлены')));
       }
+      AnalyticsService.trackEvent(
+        'instagram_refreshed',
+        projectId: projectId,
+        properties: {'username': username},
+      );
     } catch (_) {}
   }
 }

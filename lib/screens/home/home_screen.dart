@@ -5,9 +5,11 @@ import '../../core/theme/app_colors.dart';
 import '../../core/providers/onboarding_provider.dart';
 import '../../core/providers/project_provider.dart';
 import '../../core/providers/profile_provider.dart';
+import '../../core/analytics/analytics_service.dart';
 import '../../core/subscription_limits.dart';
 import '../../widgets/glass_card.dart';
 import '../../core/supabase/supabase_client.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -247,12 +249,18 @@ class _QuickActionChip extends StatelessWidget {
 class _OnboardingChecklist extends ConsumerWidget {
   const _OnboardingChecklist();
 
+  static const _prefsKeyCompletedOnce = 'analytics_onboarding_completed_once';
+  static bool _trackedThisRun = false;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final progress = ref.watch(onboardingProgressProvider);
     return progress.when(
       data: (p) {
-        if (p?.allDone == true) return const SizedBox.shrink();
+        if (p?.allDone == true) {
+          _trackOnboardingCompletedOnce();
+          return const SizedBox.shrink();
+        }
         return GlassCard(
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -271,25 +279,49 @@ class _OnboardingChecklist extends ConsumerWidget {
                   done: p?.step1 ?? false,
                   label: 'Заполни профиль',
                   actionLabel: 'Заполнить',
-                  onTap: () => context.push('/profile/edit'),
+                  onTap: () {
+                    AnalyticsService.trackEvent(
+                      'onboarding_step',
+                      properties: {'step': 1, 'action': 'open_edit_profile'},
+                    );
+                    context.push('/profile/edit');
+                  },
                 ),
                 _OnboardingStepRow(
                   done: p?.step2 ?? false,
                   label: 'Создай ДНК автора',
                   actionLabel: 'Создать',
-                  onTap: () => context.push('/blueprint'),
+                  onTap: () {
+                    AnalyticsService.trackEvent(
+                      'onboarding_step',
+                      properties: {'step': 2, 'action': 'open_blueprint'},
+                    );
+                    context.push('/blueprint');
+                  },
                 ),
                 _OnboardingStepRow(
                   done: p?.step3 ?? false,
                   label: 'Создай контент',
                   actionLabel: 'Создать',
-                  onTap: () => context.push('/generate-content'),
+                  onTap: () {
+                    AnalyticsService.trackEvent(
+                      'onboarding_step',
+                      properties: {'step': 3, 'action': 'open_generate_content'},
+                    );
+                    context.push('/generate-content');
+                  },
                 ),
                 _OnboardingStepRow(
                   done: p?.step4 ?? false,
                   label: 'Изучи тренды',
                   actionLabel: 'Изучить',
-                  onTap: () => context.go('/trends'),
+                  onTap: () {
+                    AnalyticsService.trackEvent(
+                      'onboarding_step',
+                      properties: {'step': 4, 'action': 'open_trends'},
+                    );
+                    context.go('/trends');
+                  },
                 ),
               ],
             ),
@@ -299,6 +331,18 @@ class _OnboardingChecklist extends ConsumerWidget {
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
     );
+  }
+
+  static Future<void> _trackOnboardingCompletedOnce() async {
+    if (_trackedThisRun) return;
+    _trackedThisRun = true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final already = prefs.getBool(_prefsKeyCompletedOnce) ?? false;
+      if (already) return;
+      await prefs.setBool(_prefsKeyCompletedOnce, true);
+      await AnalyticsService.trackEvent('onboarding_completed');
+    } catch (_) {}
   }
 }
 
@@ -470,6 +514,11 @@ Future<void> _showNewProjectDialog(BuildContext context, WidgetRef ref) async {
         'user_id': user.id,
         'blog_niche': niche,
       });
+      AnalyticsService.trackEvent(
+        'project_created',
+        projectId: projectId,
+        properties: {'name': name, 'niche': niche},
+      );
       switchProject(ref, projectId);
       ref.invalidate(projectsListProvider);
       if (context.mounted) {

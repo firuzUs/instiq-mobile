@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/providers/trends_provider.dart';
 import '../../core/providers/project_provider.dart';
+import '../../core/analytics/analytics_service.dart';
 import '../../core/supabase/supabase_client.dart';
 import '../../widgets/glass_card.dart';
 
@@ -85,6 +86,11 @@ class _SavedTrendsTab extends ConsumerWidget {
                   final id = list[i]['id'];
                   if (id != null) {
                     await supabase.from('saved_trends').delete().eq('id', id);
+                    AnalyticsService.trackEvent(
+                      'trend_deleted',
+                      projectId: list[i]['project_id'] as String?,
+                      properties: {'trendId': id},
+                    );
                     ref.invalidate(savedTrendsProvider);
                   }
                 },
