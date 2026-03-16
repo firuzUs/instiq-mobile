@@ -7,6 +7,7 @@ import '../../core/providers/project_provider.dart';
 import '../../core/providers/project_profile_provider.dart';
 import '../../core/providers/profile_provider.dart';
 import '../../core/providers/content_calendar_provider.dart';
+import '../../core/analytics/analytics_service.dart';
 import '../../core/subscription_limits.dart';
 import '../../core/supabase/supabase_client.dart';
 import '../../screens/paywall/paywall_screen.dart';
@@ -216,6 +217,11 @@ class _GenerateContentScreenState extends ConsumerState<GenerateContentScreen> {
       final tier = profile['subscription_tier'] as String? ?? 'free';
       if (hasReachedLimit(used, tier)) {
         if (context.mounted) {
+          AnalyticsService.trackEvent(
+            'paywall_opened',
+            projectId: projectId,
+            properties: {'source': 'generate_content', 'tier': tier, 'used': used},
+          );
           showModalBottomSheet(
             context: context,
             isScrollControlled: true,
@@ -244,6 +250,17 @@ class _GenerateContentScreenState extends ConsumerState<GenerateContentScreen> {
         });
         return;
       }
+
+      AnalyticsService.trackEvent(
+        'script_generate_started',
+        projectId: projectId,
+        properties: {
+          'count': _count,
+          'types': _selectedTypes.toList(),
+          'weekStart': _weekStartIso,
+          'niche': niche,
+        },
+      );
 
       final typeParam = _selectedTypes.length == 1
           ? _selectedTypes.first
@@ -309,6 +326,15 @@ class _GenerateContentScreenState extends ConsumerState<GenerateContentScreen> {
       ref.invalidate(contentCalendarProvider((projectId, _weekStartIso, weekEndIso)));
       ref.invalidate(projectsListProvider);
       if (mounted) {
+        AnalyticsService.trackEvent(
+          'script_generated',
+          projectId: projectId,
+          properties: {
+            'count': items.length,
+            'types': _selectedTypes.toList(),
+            'weekStart': _weekStartIso,
+          },
+        );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Создано ${items.length} идей')),
         );
@@ -316,6 +342,11 @@ class _GenerateContentScreenState extends ConsumerState<GenerateContentScreen> {
       }
     } catch (e) {
       if (mounted) {
+        AnalyticsService.trackEvent(
+          'script_generate_failed',
+          projectId: projectId,
+          properties: {'error': e.toString()},
+        );
         setState(() {
           _error = e.toString().replaceFirst('Exception: ', '');
           _isLoading = false;

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/supabase/supabase_client.dart';
 import '../../core/providers/project_provider.dart';
+import '../../core/analytics/analytics_service.dart';
 
 class StrategyChatScreen extends ConsumerStatefulWidget {
   const StrategyChatScreen({super.key});
@@ -73,6 +74,11 @@ class _StrategyChatScreenState extends ConsumerState<StrategyChatScreen> {
       _isLoading = true;
     });
     try {
+      AnalyticsService.trackEvent(
+        'strategist_message_sent',
+        projectId: projectId,
+        properties: {'length': text.length},
+      );
       await supabase.from('strategy_chat_messages').insert({
         'user_id': user.id,
         'project_id': projectId,
@@ -98,6 +104,11 @@ class _StrategyChatScreenState extends ConsumerState<StrategyChatScreen> {
         _isLoading = false;
       });
     } catch (e) {
+      AnalyticsService.trackEvent(
+        'strategist_message_failed',
+        projectId: projectId,
+        properties: {'error': e.toString()},
+      );
       if (mounted) setState(() {
         _messages.add({'role': 'assistant', 'content': 'Ошибка: $e'});
         _isLoading = false;
